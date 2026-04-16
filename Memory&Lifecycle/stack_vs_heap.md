@@ -48,7 +48,45 @@
        
     - 예제
     ```swift
+    struct Person { // 컴파일 단계에서 코드영역에 저장
     
+        // 컴파일 단계에서 데이터 영역에 자리만 만듬 실제로 데이터를 메모리에 올리지는 않음
+        static let country: String = "대한민국"
+        var age: Int
+        
+        // lazy 변수는 반드시 var로 선언해야함 ( 처음에는 값이 없으며 나중에 값이 변경이 되기 때문에 )
+        // lazy 변수는 반드시 초기값을 설정해야함 ( 클로저를 많이 사용함 )
+        lazy var profileImage: String = {
+            print("이미지 다운로드 중..")
+            return "sampleImage.png"
+        }()
+    }
+
+    // 비어있던 데이터 영역의 country 자리에 "대한민국" 이라는 문자열을 메모리에 올림
+    // 앱이 꺼질때 까지 메모리를 사용함
+    print(Person.country)
+    
+    // 이때 P는 Stack에 저장되며 age(8바이트) 공간에 30이 할당됨
+    // 여기서 Stack에 p의 상태 : [ age: 30 | profileImage: nil ]
+    var p = Person(age: 30)
+    
+    // 구조체 내부의 static 변수는 데이터 영역에 저장되므로 메모리의 크기를 잡아 먹지 않음
+    // 구조체 내부에 lazy 변수가 존재 하기 때문에 컴파일 단계에서 미리 Stack에 공간을 할당을 해놓음
+    print("메모리 크기 : \(MemoryLayout.size(ofValue: p))")
+    
+    // 여기서 lazy 변수의 값을 불러오게 됨
+    // Stack의 p 변수 안에 존재하는 profileImage이 nil 인것을 확인
+    // 컴파일 단계에서 코드 영역에 저장했던 클로저를 실행
+    // String 형식의 profileImage를 Heap에 저장
+    // Stack의 p 변수 안에 존재하는 profileImage의 값을 Heap의 포인터값을 저장
+    // 여기서 Stack에 p의 상태 : [ age: 30 | profileImage: 0x1234(Heap 포인터) ]
+    print("첫 번째 호출")
+    print("프로필 이미지 :\(p.profileImage)")
+    
+    // Stack의 p 변수 안에 존재하는 profileImage의 값이 Heap 포인터 인것을 확인
+    // 클로저는 무시하고 바로 Heap으로 가서 "sampleImage.png"를 읽어옴
+    print("첫 번째 호출")
+    print("프로필 이미지 :\(p.profileImage)")
     ```
         
 
