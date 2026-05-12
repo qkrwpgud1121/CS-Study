@@ -123,3 +123,16 @@
     - 해서 컬렉션 타입들 자체는 Stack에 포인터, 길이 정보 정도만 저장 한다.
     - Array, String, Dictionary 내부의 거대한 데이터는 Heap에 저장하게 된다.
     - 컬렉션 타입들은 이름만 Struct이며 실제로는 Heap의 메모리를 사용하고 **Copy-on-Write**라는 것을 사용한다.
+
+- Closure의 메모리 할당 위치
+    - Closure는 참조 타입으로 무조건 Heap영역에 저장된다고 생각했다. 하지만 사용 방식에 따라 저장되는 위치가 다르다.
+    - **1. 일회성 Closure**
+        - 형태: `lazy var profileImage: String = {...}()` 처럼 끝에 `()`가 붙어 즉시 싱행되는 경우
+        - 위치: 이런 경우 메모리에 저장하지 않고 내부의 로직만 **Code 영역**에 저장하고 호출 시 **Stack**에서 실행되고 결과값만 남긴채 제거된다.
+    - **2. Non-escaping Closure**
+        - 형태: `.map { $0 }`, `.filter { $0 }` 등 함수 내부에서만 즉시 사용되고 버려지는 경우
+        - 위치: 오랫동안 값을 기억(Capture)할 필요가 없으므로 Heap 대신 가볍고 빠른 **Stack 영역**에 할당되었다가 함수 종료와 함께 제거된다.
+    - **3. Escaping Closure**
+        - 형태: 콜백(`completion`), `DispatchQueue.main.async`와 같이 비동기 로직에 사용되는 `@escaping` 같은 경우
+        - 위치: 함수가 종료된 이후에도 값을 저장하고 있어야 하기때문에 값을 기억(Capture)할 필요가 있어 안전하고 넓은 **Heap 영역**에 할당된다. 
+        - **순환 참조**가 발생할 위험이 있다.
