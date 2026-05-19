@@ -2,7 +2,7 @@
 
 ## Memory & Lifecycle (메모리의 탄생과 죽음)
 - [X] [**Stack vs Heap**](./Memory&Lifecycle/stack_vs_heap.md) (메모리 구조의 물리적 할당 방식과 할당/해제 오버헤드)
-- [ ] [**Class vs Struct**](./Memory&Lifecycle/class_vs_struct.md) (값 타입 vs 참조 타입의 실체 및 메모리 정렬)
+- [X] [**Class vs Struct**](./Memory&Lifecycle/class_vs_struct.md) (값 타입 vs 참조 타입의 실체 및 메모리 정렬)
 - [ ] **Memory Management (ARC)** (Reference Counting, Strong/Weak/Unowned의 실체)
 - [ ] **Retain Cycle** (순환 참조 발생 원인과 Side Table을 통한 해결법)
 - [ ] **Closure** (Capturing Values, @escaping, @autoclosure와 힙 할당 메커니즘)
