@@ -6,7 +6,7 @@
 | :-- | :-- | :-- |
 | 작동 시기 | 런타임(프로그램 실행 중 주기적으로 작동) | 컴파일 타임(컴파일 시점에서 참조, 해제가 결정됨) |
 | 주체 | Garbage Collector | Swift Compiler |
-| **순환 참조** | 낮음 | 개발자가 직접 해결해야함 |
+| **순환 참조** | **GC가 스스로 제거함** | 개발자가 직접 해결해야함 |
 | CPU 부하 | 주기적으로 메모리를 확인해야 하므로 오버헤드 발생 | 참조 카운트만 계산하므로 오버헤드 적음 |
 | 메모리 해제 | 가득 찰때까지 기다리다가 한번에 정리 (언제 지워질지 모름) | **RC가 0이 되는 즉시 해제 (예측 가능)** |
 | **치명적 단점** | Garbage Collector가 돌아갈 때 앱이 순간적으로 버벅임 발생 | 개발자의 실수로 순환 참조 발생 시 영구적인 메모리 누수 발생 |
@@ -26,10 +26,14 @@ class Person {
         self.age = age
     }
     
+    deinit {
+        print("deinit Person")
+    }
+    
 }
 
 func printAddress() {
-    var john = Person(name: "john", age: 29)
+    var john = Person(name: "john", age: 29)                          // Class Person RC + 1
     
     withUnsafePointer(to: &john) { pointer in
         print("john 변수의 Stack 주소: \(pointer)")                      // 0x000000016fdfee48
@@ -38,7 +42,7 @@ func printAddress() {
     let johnsHeapAddress = Unmanaged.passUnretained(john).toOpaque()
     print("john 변수의 실제 데이터가 있는 Heap 주소: \(johnsHeapAddress)")    // 0x00000001007f6150
     
-    var may = john
+    var may = john                                                    // Class Person RC + 1
     
     withUnsafePointer(to: &may) { pointer in
         print("may 변수의 Stack 주소: \(pointer)")                       // 0x000000016fdfee20
@@ -50,7 +54,10 @@ func printAddress() {
     print(john.name, john.age)                                        // john 29
     print(may.name, may.age)                                          // john 29
 
-}
+}   // 함수 종료와 함께 john, may 지역 변수 제거됨
+    // john이 사라지면서 Person의 RC -1
+    // may가 사라지면서 Person의 RC -1
+    // Person 클래스의 deinit 발생
 
 **Stack의 john -> Heap의 Person 인스턴스를 참조**
 **Stack의 may -> Heap의 Person 인스턴스를 참조**
@@ -69,7 +76,31 @@ func printAddress() {
 - `Reference Count`즉 참조 수를 계산하여 참조 수가 0이 되면 메모리에서 제거한다.
 - 모든 인스턴스는 각자의 `Reference Count`값을 가지고 있다. 
 
-### `Reference Count`값 추가
+### `Reference Count`값 증가
 
-1. 인스턴스 생성
-    - 
+1. 인스턴스 생성 및 할당
+    - `Heap`에 새로운 인스턴스를 생성하고, 이를 변수, 상수에 처음 할당할때 RC + 1
+    - ex) `var john = Person(name: "john", age: 29)`
+    
+2. 기존 인스턴스를 다른 변수에 대입 (참조 공유)
+    - 이미 생성된 인스턴스를 다른 변수에 대입하여 여러개의 변수가 하나의 인스턴스를 동시에 참조할때 RC + 1
+    - ex) `var may = john`
+    
+### `Reference Count`값 감소
+
+1. 변수에 `nil` 할당
+    - 인스턴스를 참조하던 변수에 `nil`을 할당하여 참조를 명시적으로 끊을때 RC - 1
+    - ex) `john = nil`
+    
+2. 다른 인스턴스 대입
+    - 인스턴스를 참조하던 변수에 다른 인스턴스를 덮어씌우면 기존 인스턴스의 참조가 끊어져 기존의 인스턴스 RC - 1
+    - `may = Person(name: "Tom", age: 30)`
+    
+    - ex) 기존의 may 변수가 참조하던 `Person(name: "john", age: 29)`의 RC - 1, 새로운 인스턴스인 `Person(name: "Tom", age: 30)`의 RC + 1
+    
+3. 스코프의 종료
+    - 지역 변수가 선언된 함수나 조건문 등의 `{ ~ }` 중괄호 블록이 끝나면 Stack에서 지역변수를 메모리에서 제거 하기 때문에 이때 변수가 가지고 있던 참조도 제거되며 참조 인스턴스의 RC - 1
+    
+### `Reference Count` 0 (메모리 해제)
+    - 위의 RC 의 값이 0이 되는 즉시 `ARC`는 해당 인스턴스를 `Heap`메모리에서 완전히 제거한다.
+    - 제거 되기 직전 인스턴스 내부에서 `deinit { }`이 자동으로 호출되며 제거된다.
