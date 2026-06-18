@@ -104,3 +104,27 @@ func printAddress() {
 ### `Reference Count` 0 (메모리 해제)
     - 위의 RC 의 값이 0이 되는 즉시 `ARC`는 해당 인스턴스를 `Heap`메모리에서 완전히 제거한다.
     - 제거 되기 직전 인스턴스 내부에서 `deinit { }`이 자동으로 호출되며 제거된다.
+
+
+## Strong, Weak, Unowned
+
+### Strong (강함 참조)
+    - 가장 기본적인 참조 방식
+    - 변수를 선언할 때 앞에 아무것도 선언을 하지 않으면 무조건 `Strong` 참조가 된다.
+    - 인스턴스의 Strong Reference Count를 직접 + 1 한다.
+    - ex) `var john = Person(name: "john", age: 29)`
+    
+### Weak (약함 참조)
+    - 인스턴스를 참조하지만 객체의 생명주기에 관여하고 싶지 않을때 사용
+    - 인스턴스의 Weak Refence Count만 + 1 한다.
+    - 참조하던 인스턴스의 Strong Reference Count가 0이 되어 메모리 해제가 되면 자동으로 `nil`을 할당하여 메모리에서 해제 한다.
+    - 언제든지 값이 `nil`로 바뀔수 있어야 하므로 반드시 `var`변수로 선언을 해야하며 `Optional`타입이어야만 한다.
+    - ex) `weak var may: Person? = john`
+
+### Unowned (미소유 참조)
+    - Weak와 마찬가지로 생명주기에는 관여하지 않지만 변수가 인스턴스를 참조하는 중에는 인스턴스가 메모리에서 해제되지 않는다고 확신할 때 사용
+    - 인스턴스의 Unowned Reference Count만 + 1 한다.
+    - 참조하는 인스턴스의 Reference Count가 0이 되어 메모리에서 해제가 되더라도 변수의 값이 nil로 바뀌지 않고 기존 인스턴스의 주소값을 그대로 가지고 있다.
+    - 해서 변수에 접근 하는 순간 앱의 크래시가 발생한다.
+    - nil이 될수 없다고 가정하므로 기본적으로는 Non-Optional 타입으로 선언하며 값이 바뀔일이 없다면 let으로도 선언이 가능하다.
+    - ex) `unowned let unownedRef: Person = john!`
