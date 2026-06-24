@@ -112,7 +112,61 @@ func printAddress() {
     - 가장 기본적인 참조 방식
     - 변수를 선언할 때 앞에 아무것도 선언을 하지 않으면 무조건 `Strong` 참조가 된다.
     - 인스턴스의 Strong Reference Count를 직접 + 1 한다.
-    - ex) `var john = Person(name: "john", age: 29)`
+    
+    **순환 참조**
+        - Strong으로 서로를 참조했을때 변수에 `nil`을 할당하여 인스턴스의 참조가 제거 되었을때 인스턴스가 서로의 RC를 붙잡고 있는 현상
+        - 이런 경우 서로의 `deinit`이 호출 되지 않으면서 **순환 참조**가 발생한다.
+        - 결국 변수에 `nil`을 할당이 되면서 인스턴스에 접근할 수 있는 방법도 없기 때문에 메모리에서 해제를 하지 못한다.
+        - 해당 경우 `Memory Leak`이 발생을 하면서 메모리를 지속적으로 갉아 먹는다.
+        - 결국 아이폰의 OS에서 메모리를 비정상적으로 많이 사용한다고 생각하여 앱을 강제 종료 시킨다 이것이 **OOM (Out Of Memory) Crash** 이다.
+    
+    ```swift
+    class Person {
+        var name: String
+        var age: Int
+        var apartment: Apartment?
+        
+        init(name: String, age: Int) {
+            self.name = name
+            self.age = age
+        }
+        
+        deinit {
+            print("deinit Person")
+        }
+        
+    }
+    
+    class Apartment {
+        var unit: String
+        var tenant: Person?
+    
+        init(unit: String) {
+            self.unit = unit
+        }
+    
+        deinit {
+            print("deinit Apartment")
+        }
+    }
+    
+    func printAddress() {
+        
+        var john: Person? = .init(name: "john", age: 29)
+        var unit302: Apartment? = .init(unit: "302")
+        
+        john?.apartment = unit302
+        unit302?.tenant = john
+        
+        print(CFGetRetainCount(john))       // Class Person RC = 2
+        print(CFGetRetainCount(unit302))    // Class Apartment RC = 2
+        
+        // 순환 참조 발생
+        john = nil
+        unit302 = nil
+        
+    }
+    ```
     
 ### Weak (약함 참조)
     - 인스턴스를 참조하지만 객체의 생명주기에 관여하고 싶지 않을때 사용
@@ -128,3 +182,14 @@ func printAddress() {
     - 해서 변수에 접근 하는 순간 앱의 크래시가 발생한다.
     - nil이 될수 없다고 가정하므로 기본적으로는 Non-Optional 타입으로 선언하며 값이 바뀔일이 없다면 let으로도 선언이 가능하다.
     - ex) `unowned let unownedRef: Person = john!`
+
+### 비교표
+
+| | Strong | Weak | Unowned |
+| :-- | :-- | :-- | :-- |
+| 선언 방식 | `var`, `let` | `weak var` | `unowned var`, `unowned let` |
+| RC Count | +1 | 증가 하지 않음 | 증가 하지 않음 |
+| Optional | 둘다 가능 | **Optional** | Non-Optional (Swift 5.0 부터 Optional 가능) |
+| 대상 소멸시 상태 | 소멸하지 않음 | 자동으로 `nil`변환 | 소멸된 주소 그대로 유지 |
+| 소멸 후 접근 | 해당 사항 없음 | `nil` 반환 | Crash 발생 |
+
