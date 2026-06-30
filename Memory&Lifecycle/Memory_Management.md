@@ -152,21 +152,33 @@ func printAddress() {
     
     func printAddress() {
         
-        var john: Person? = .init(name: "john", age: 29)
-        var unit302: Apartment? = .init(unit: "302")
+        var john: Person? = .init(name: "john", age: 29)    // Class Person RC + 1,     Class Person RC = 1
+        var unit302: Apartment? = .init(unit: "302")        // Class Apartment RC + 1,  Class Apartment RC = 1
         
-        john?.apartment = unit302
-        unit302?.tenant = john
+        unit302?.tenant = john              // Class Person RC + 1,                     Class Person RC = 2
+        john?.apartment = unit302           // Class Apartment RC + 1,                  Class Apartment RC = 2
         
-        print(CFGetRetainCount(john))       // Class Person RC = 2
-        print(CFGetRetainCount(unit302))    // Class Apartment RC = 2
+        print(CFGetRetainCount(john))       // CFGetRetainCount로 인한 RC + 1,            Class Person RC = 3
+        print(CFGetRetainCount(unit302))    // CFGetRetainCount로 인한 RC + 1,            Class Apartment RC = 3
+        
+        /*
+        print(CFGetRetainCount(john))      // CFGetRetainCount 종료로 인한 RC - 1,        Class Person RC = 2
+        print(CFGetRetainCount(unit302))   // CFGetRetainCount 종료로 인한 RC - 1,        Class Apartment RC = 2
+        */
         
         // 순환 참조 발생
-        john = nil
-        unit302 = nil
+        john = nil      // Class Person RC - 1,         Class Person RC = 1
+        unit302 = nil   // Class Apartment RC - 1,      Class Apartment RC = 1
+        
+        // Person 인스턴스 내부의 선언된 apartment 에서 Apartment 인스턴스를 그대로 참조하고 있음
+        // Apartment 임스턴스 내부에 선언된 tenant 에서 Person 인스턴스를 그대로 참조 하고 있음
+        
+        // Stack 메모리에서 Heap에 저장되어있는 인스턴스를 참조하는게 없기 때문에 Heap에 저장되어있는 Person, Apartment 인스턴스의 RC를 제어할 수 없음
         
     }
     ```
+    
+    **순환 참조를 막기위해 사용하는 것이 Weak, Unowned가 있다.**
     
 ### Weak (약함 참조)
     - 인스턴스를 참조하지만 객체의 생명주기에 관여하고 싶지 않을때 사용
