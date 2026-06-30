@@ -185,8 +185,88 @@ func printAddress() {
     - 인스턴스의 Weak Refence Count만 + 1 한다.
     - 참조하던 인스턴스의 Strong Reference Count가 0이 되어 메모리 해제가 되면 자동으로 `nil`을 할당하여 메모리에서 해제 한다.
     - 언제든지 값이 `nil`로 바뀔수 있어야 하므로 반드시 `var`변수로 선언을 해야하며 `Optional`타입이어야만 한다.
-    - ex) `weak var may: Person? = john`
+    
+    ```swift
+    class Person {
+        var name: String
+        var age: Int
+        weak var apartment: Apartment?
+        
+        init(name: String, age: Int) {
+            self.name = name
+            self.age = age
+        }
+        
+        deinit {
+            print("deinit Person")
+        }
+        
+    }
+    
+    class Apartment {
+        var unit: String
+        var tenant: Person?
+    
+        init(unit: String) {
+            self.unit = unit
+        }
+    
+        deinit {
+            print("deinit Apartment")
+        }
+    }
+    
+    func printAddress() {
+    
+        var john: Person? = .init(name: "john", age: 29)    // Class Person RC + 1,     Class Person RC = 1
+        var unit302: Apartment? = .init(unit: "302")        // Class Apartment RC + 1,  Class Apartment RC = 1
+        
+        unit302?.tenant = john              // Class Person RC + 1,                     Class Person RC = 2
+        john?.apartment = unit302           // Person 내부의 Apartment 참조를 weak로 선언했기 때문에 Apartment의 RC가 오르지 않는다., Class Apartment RC = 1
+        
+        print(CFGetRetainCount(john))       // CFGetRetainCount로 인한 RC + 1,            Class Person RC = 3
+        print(CFGetRetainCount(unit302))    // CFGetRetainCount로 인한 RC + 1,            Class Apartment RC = 2
+        
+        /*
+        print(CFGetRetainCount(john))      // CFGetRetainCount 종료로 인한 RC - 1,        Class Person RC = 2
+        print(CFGetRetainCount(unit302))   // CFGetRetainCount 종료로 인한 RC - 1,        Class Apartment RC = 1
+        */
+        
+        // 순환 참조 발생
+        john = nil      // Class Person RC - 1,         Class Person RC = 1
+        unit302 = nil   // Class Apartment RC - 1,      Class Apartment RC = 0
+        
+        // 1. Apartment의 RC가 0이 되어 Heap 메모리에서 해제 된다. (deinit Apartment)
+        // 2. Apartment가 메모리에서 헤재되며 tenant 변수도 함께 제거된다.
+        // 3. tenant가 제거되며 Person 역시 RC = 0 이되므로 역시 Heap에서 메모리가 해제가 된다. (deinit Person)
+        // 4. 이때 Person에서 weak var apartment는 Side Table에 의해 안전하게 nil로 변환된다.
+        
+        // 출력 결과
+        // deinit Apartment
+        // deinit Person
+    }
 
+    ```
+
+    **weak를 어디에 선언을 해줘야 하나**
+    - 1. 수직 관계 ( 부모, 자식 / 갑, 을 )
+        - 이런 경우 을 및 자식에 `weak` 를 선언 하여 자식이 부모의 RC를 올리지 않도록 한다.
+        - 갑이 소멸될경우 자식들도 같이 소멸되어야 하기 때문이다.
+        - 만약 반대로 갑 및 부모에 `weak`를 선언한다면 을, 자식은 생성이 되자마자 소멸되어 버리는 현상이 발생한다.
+        
+        ```swift
+        
+        ```
+        
+    - 2. 평행 관계 ( 자식, 자식 / 을, 을 )
+        - 웬만하면 자식과 자식끼리는 서로 직접적으로 참조할 수 없도록 하고 부모의 통제를 받도록 하는것이 좋다.
+        - 양방향 링크드 리스트처럼 반드시 서로를 참조를 해야한다면 데이터가 흘러가는 정방향 (앞 -> 뒤)은 `Strong`, 역방향 (뒤 -> 앞)은 `weak`를 선언한다.
+        - 즉 시간의 흐름에 따라 도미노 처럼 소멸 되도록 한다.
+        
+        ```swift
+        
+        ```
+    
 ### Unowned (미소유 참조)
     - Weak와 마찬가지로 생명주기에는 관여하지 않지만 변수가 인스턴스를 참조하는 중에는 인스턴스가 메모리에서 해제되지 않는다고 확신할 때 사용
     - 인스턴스의 Unowned Reference Count만 + 1 한다.
