@@ -255,7 +255,65 @@ func printAddress() {
         - 만약 반대로 갑 및 부모에 `weak`를 선언한다면 을, 자식은 생성이 되자마자 소멸되어 버리는 현상이 발생한다.
         
         ```swift
+        class ViewController {
+    
+            var popup: CustomPopup?
+            
+            func showPopup() {
+                popup = CustomPopup()
+                
+                popup?.delegate = self
+            }
+            
+            func popupDidClose() {
+                
+                print("팝업이 닫혔습니다.")
+                
+                self.popup = nil
+            }
+            
+            deinit { print("갑(화면) 메모리 해제 완료") }
+        }
         
+        class CustomPopup {
+            
+            weak var delegate: ViewController?
+            
+            func closeButton() {
+                delegate?.popupDidClose()
+            }
+            
+            deinit { print("을(팝업) 메모리 해제 완료") }
+        }
+        
+        func view() {
+            
+            var vc: ViewController? = .init()   // 갑의 위치인 ViewController의 RC + 1
+            
+            vc?.showPopup()                     // 을의 위치인 CustomPopup의 RC + 1
+                                                // 여기서 CustomPopup에서 ViewController를 weak 선언하여 바라만 보게 함으로 ViewController의 RC가 증가하지 않는다.
+            
+                                                // ViewController의 RC = 1, CustomPopup의 RC = 1
+                                                
+            
+            vc?.popup?.closeButton()            // 을의 위치인 CustomPopup의 RC - 1
+                                                // 여기서 실무에서 사용하는 delegate 패턴을 보여준다.
+                                                // ViewController에 있는 popupDidClose에 콜백을 사용할 수 있다.
+            
+                                                // ViewController의 RC = 1, CustomPopup의 RC = 0
+            
+            vc = nil                            // 갑의 위치인 ViewController의 RC - 1
+                                                // ViewController가 메모리에서 해제된다
+            
+                                                /*
+                                                예외 상황
+                                                vc?.popup?.closeButton() 를 하지않고 바로 ViewController가 메모리에서 해제가 되는 상황에서도
+                                                CustomPopup은 ViewController를 weak를 사용해서 바라만보도록 설정하였으므로 ViewController의 RC가 0이 되어 메모리에서 해제가 되면 CustomPopup의 RC를 잡고있던 ViewController가 제거되면서
+                                                팝업을 사용자가 닫지 않고 예외상황으로 메인뷰가 먼저 닫혀도 팝업의 RC가 0이므로 자동으로 메모리에서 해제되어 메모리 누수가 발생하지 않는다.
+                                                */
+                                                
+                                                // ViewController의 RC = 0, CustomPopup의 RC = 0
+        }
         ```
         
     - 2. 평행 관계 ( 자식, 자식 / 을, 을 )
@@ -264,7 +322,50 @@ func printAddress() {
         - 즉 시간의 흐름에 따라 도미노 처럼 소멸 되도록 한다.
         
         ```swift
+        class Node {
+    
+            var value: String
+            
+            var next: Node?
+            
+            weak var prev: Node?
+            
+            init(value: String) {
+                self.value = value
+            }
+            
+            deinit { print("\(value) 노드 메모리 해제 완료") }
+        }
         
+        func linkedList() {
+            
+            var firstNode: Node? = .init(value: "앞")        // firstNode의 Node 인스턴스의 RC + 1
+            let secondeNode: Node? = .init(value: "중간")     // secondeNode의 Node 인스턴스의 RC + 1
+            let thirdNode: Node? = .init(value: "뒤")        // thirdNode의 Node 인스턴스의 RC + 1
+            
+                                                            // firstNode의 RC = 1, secondeNode의 RC = 1, thirdNode의 RC = 1
+            
+            firstNode?.next = secondeNode                   // secondeNode의 Node 인스턴스의 RC + 1
+            secondeNode?.next = thirdNode                   // thirdNode의 Node 인스턴스의 RC + 1
+            
+                                                            // firstNode의 RC = 1, secondeNode의 RC = 2, thirdNode의 RC = 2
+            
+            thirdNode?.prev = secondeNode                   // thirdNode의 prev는 weak로 선언 하였기 때문에 secondNode의 RC를 변경하지 않는다.
+            secondeNode?.prev = firstNode                   // secondNode의 prev는 weak로 선언 하였기 때문에 firstNode의 RC를 변경하지 않는다.
+        
+                                                            // firstNode의 RC = 1, secondeNode의 RC = 2, thirdNode의 RC = 2
+            
+            firstNode = nil                                 // firstNode의 RC = 0, secondeNode의 RC = 1, thirdNode의 RC = 2
+            
+                                                            /*
+                                                            firstNode = nil을 할때와 함수가 종료되어 지역 변수가 메모리에서 해제될때의 차이
+                                                            1. firstNode = nil할때 지역변수 firstNode가 완전히 제거 되는것이 아닌 내부의 포인터 값이 제거된다.
+                                                            2. 이때 Heap에 저장되어있는 firstNode가 참조하고있던 인스턴스의 RC 값은 0이 된다 즉 Stack과 Heap의 참조가 끊어진다.
+                                                            3. 함수가 종료될때 지역변수가 Stack 에서 완전한 메모리 해제 된다.
+                                                            4. 즉 firstNode = nil을 하지 않아도 Heap에서의 메모리 누수는 발생하지 않는다.
+                                                            */
+            
+        }                                                   // 함수가 종료됨에 따라 지역변수인 firstNode, secondeNode, thirdNode 가 Stack에서 메모리 해제를 하며 참조를 하던 Heap의 각각의 Node 인스턴스의 RC - 1
         ```
     
 ### Unowned (미소유 참조)
