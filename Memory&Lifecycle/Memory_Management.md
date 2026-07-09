@@ -374,7 +374,55 @@ func printAddress() {
     - 참조하는 인스턴스의 Reference Count가 0이 되어 메모리에서 해제가 되더라도 변수의 값이 nil로 바뀌지 않고 기존 인스턴스의 주소값을 그대로 가지고 있다.
     - 해서 변수에 접근 하는 순간 앱의 크래시가 발생한다.
     - nil이 될수 없다고 가정하므로 기본적으로는 Non-Optional 타입으로 선언하며 값이 바뀔일이 없다면 let으로도 선언이 가능하다.
-    - ex) `unowned let unownedRef: Person = john!`
+    
+    ```swift
+    class Customer {
+    
+        let name: String
+        var card: CreditCard?
+        
+        init(name: String) {
+            self.name = name
+        }
+        
+        deinit { print("\(name) 메모리 해제 완료" ) }
+    }
+    
+    class CreditCard {
+        
+        let number: String
+        
+        unowned let customer: Customer
+        
+        init(number: String, customer: Customer) {
+            self.number = number
+            self.customer = customer
+        }
+        
+        deinit { print("Credit card \(number) 메모리 해제 완료" )}
+    }
+    
+    func processCustomer() {
+        
+        var john: Customer? = Customer(name: "John")                                // Class Customer의 RC + 1
+        john?.card = CreditCard(number: "1234-5678-8765-4321", customer: john!)     // Class CreditCard의 RC + 1
+        
+                                                                                    // Clacc Customer RC = 1, Class CreditCard RC = 1
+        
+        let capturedCard = john!.card                                               // Class CreditCard의 RC + 1
+        
+                                                                                    // Clacc Customer RC = 1, Class CreditCard RC = 2
+        
+        john = nil                                                                  // Class Customer RC - 1
+                                                                                    // Class Customer RC = 0, Class CreditCard RC = 2
+        
+        print(john)                                                                 // 출력: nil
+    //    print(capturedCard?.customer.name)                                        // Fatal error
+                                                                                    // CreditCard는 메모리에 살아 있지만 참조하던 Customer 인스턴스가 메모리에서 해제 된것을 모르고 값을 꺼내려고 해 Fatal Error를 발생시킨다.
+        
+    }
+    
+    ```
 
 ### 비교표
 
