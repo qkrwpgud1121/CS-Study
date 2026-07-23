@@ -14,3 +14,53 @@
 - Retain Cycle을 막기 위해서는 ARC에서 제공하는 참조를 하지만 RC는 증가시키지 않는 `weak`(약한 참조, 참조 대상이 메모리에서 해제될시 자동으로 `nil`을 할당)와 `unowned`(미소유 참조)를 사용하여 순환 참조를 방지할 수 있다.
 
 
+## Retain Cycle 종류
+
+### Instance <-> Instance
+```swift
+class Person {
+    var myDog: Dog?
+}
+
+class Dog {
+   weak var owner: Person?
+}
+
+let jason = Person()
+let baduk = Dog()
+
+jason.myDog = baduk
+baduk.owner = jason
+```
+
+### Instance <-> Closure
+```swift
+class iOSDeveloper {
+    let name: String
+    var developApp: (() -> Void)?
+    
+    init(name: String) {
+        self.name = name
+        print("\(name) 초기화 완료")
+    }
+    
+    deinit { print("\(name) 메모리 헤제 완료") }
+    
+    func startDevelop() {
+        developApp = { [weak self] in
+            guard let self = self else { return }
+            print("\(self.name) starting develop")
+        }
+    }
+}
+
+func startDevelop() {
+        
+    var dev: iOSDeveloper? = iOSDeveloper(name: "iOS 2년차 아키택트")
+    
+    dev?.startDevelop()
+    dev?.developApp?()
+    
+    dev = nil
+}
+```
