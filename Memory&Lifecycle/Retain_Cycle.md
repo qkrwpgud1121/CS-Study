@@ -1,6 +1,6 @@
 # Retain Cycle (순환 참조 Closure)
 
-## Retian Cycle과 Auto Reference Count 의 관계
+## Retain Cycle과 Auto Reference Count 의 관계
 
 - Swift의 메모리 관리 시스템인 ARC의 규칙으로 인해 발생하는 메모리 누수 즉 **순환 참조**를 **Retain Cycle** 이라고 하며 이것을 해결하기 위해 ARC에서 제공하는 `weak`, `unowned`를 사용하여 순환 참조가 발생하여 메모리 누수가 되는 상황을 방지 할수 있다.
 
@@ -64,3 +64,15 @@ func startDevelop() {
     dev = nil
 }
 ```
+
+## 비탈출 클로저와 탈출 클로저의 차이
+
+### 탈출 클로저에서만 Retain Cycle이 발생하는 이유
+
+- 비탈출 클로저 (`filter`, `map`, `forEach`) 같은 클로저 즉 고차함수 들은 함수가 실행될때 사용되고 함수가 종료되면 메모리에서 즉시 해제가 되기 때문에 Retain Cycle이 발생하지 않는다.
+- 탈출 클로저 (`@Escaping`, `Completion`)에서는 함수가 종료되었는데도 나중에 실행되기 위해 메모리의 어딘가 저장되어 남아있는 클로저 이기 때문에 `self`를 사용하여 강하게 참조를 한다면 객체와 클로저가 서로를 놓지 못하여 Retain Cycle이 발생한다.
+
+### 클로저에서 Side Table을 활용한 Retain Cycle 방어
+
+- 탈출 클로저에서 `self`를 사용해 객체와 클로저가 강하게 붙잡고 있는 것을 방지 하기 위해 클로저 에 `[weak self]` in 을 사용하여 `Side Table`이라는 본체를 대신한 대리자를 통해 본체가 소멸됬을때 클로저의 `guard let self = self else { return }`나 `self?.`에 `nil`을 반환하여 안전하게 메모리에서 해제될수 있도록 한다.
+- 또한 `guard let self = self else { return }`을 사용하여 클로저 내부의 `self?.`옵셔널 미리 해제 하여 클로저 내부에서는 `?`없이 `self.`로 편하게 접근할 수 있도록 해준다.
