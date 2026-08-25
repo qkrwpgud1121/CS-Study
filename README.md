@@ -4,7 +4,7 @@
 - [X] [**Stack vs Heap**](./Memory&Lifecycle/stack_vs_heap.md) (메모리 구조의 물리적 할당 방식과 할당/해제 오버헤드)
 - [X] [**Class vs Struct**](./Memory&Lifecycle/class_vs_struct.md) (값 타입 vs 참조 타입의 실체 및 메모리 정렬)
 - [X] [**Memory Management (ARC)**](./Memory&Lifecycle/Memory_Management.md) (Reference Counting, Strong/Weak/Unowned의 실체)
-- [ ] [**Retain Cycle**](./Memory&Lifecycle/Retain_Cycle.md) (순환 참조 발생 원인과 Side Table을 통한 해결법)
+- [X] [**Retain Cycle**](./Memory&Lifecycle/Retain_Cycle.md) (순환 참조 발생 원인과 Side Table을 통한 해결법)
 - [ ] **Closure** (Capturing Values, @escaping, @autoclosure와 힙 할당 메커니즘)
 - [ ] **Copy on Write (COW)** (값 타입의 성능 최적화 내부 동작 원리)
 - [ ] **Debugging** (Memory Leak 분석 및 Instruments 도구 활용 실습)
